@@ -177,6 +177,7 @@ def page_4():
                 raw_data = pd.read_excel('Cache/raw data.xlsx',
                                          sheet_name='raw')
                 raw_data = raw_data.drop(raw_data.columns[0], axis=1)
+                raw_data = raw_data.drop(['outcome'], axis=1)
             else:
                 st.error("No training data! Please upload the training data on the **1. Data Upload** page!", icon="🚨")    
             # 判断列名是否符合要求
