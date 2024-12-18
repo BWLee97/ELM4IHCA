@@ -47,8 +47,9 @@ def page_2():
         uploaded_file = st.file_uploader("Please upload Excel data as requested in **NOTES**.")
         with st.expander('**NOTES**'):
             st.write('1. Please specify the outcome variable and name it as **outcome**.')
-            st.write('2. You can upload any input variables that you prefer without being limited to the 7 clinical features mentioned in our paper, **but you will not be able to use the *3. Model Prediction* function if you do so**.')
-            st.write('3. We sincerely hope that you will try the *3. Model Prediction* function. Therefore, please name the input variables in your Excel as follows: **HCO3, GCS, WBC, INR, HCT, Temperature, BUN**.')
+            st.write('2. Please do not upload data that contains missing values or outliers.')
+            st.write('3. You can upload any input variables that you prefer without being limited to the 7 clinical features mentioned in our paper, **but you will not be able to use the *3. Model Prediction* function if you do so**.')
+            st.write('4. We sincerely hope that you will try the *3. Model Prediction* function. Therefore, please name the input variables in your Excel as follows: **HCO3, GCS, WBC, INR, HCT, Temperature, BUN**.')
     # 显示已经上传的数据
     with st.container(border=True):
         st.subheader('Loading data')
@@ -78,8 +79,8 @@ def page_3():
                 # 从缓存目录中读取数据
                 data = pd.read_excel('Cache/raw data.xlsx', sheet_name='raw')
                 data = data.drop(data.columns[0], axis=1)
-                st.write('**The raw data values are as follows:**')
-                st.write(data)
+                # st.write('**The raw data values are as follows:**')
+                # st.write(data)
                 # 划分输入和结局数据
                 data = data.dropna()
                 y = data['outcome']
@@ -99,8 +100,10 @@ def page_3():
                 # 导出归一化数据
                 scaled_data.to_excel('Cache/normalized data.xlsx',
                                      sheet_name='scaled')
-                st.write('**The normalized data values are as follows:**')
-                st.write(scaled_data)
+                # st.write('**The normalized data values are as follows:**')
+                # st.write(scaled_data)
+                with st.spinner('Wait a moment......'):
+                    st.success("Data has been uploaded. Let's train the model!", icon="✅")
             else:
                 st.error("No training data! Please upload the training data on the **1. Data Upload** page!", icon="🚨")    
     with st.container(border=True):
@@ -163,37 +166,63 @@ def page_4():
     # 加载训练好的模型
     if os.path.exists('Cache/model.pkl'):
         st.success("Model has been trained. Let's use the model to make predictions!", icon="✅")
-    # 准备提交表单
-    with st.form('my_form'):
-        st.subheader('Enter data')
-        st.caption('Please enter the relevant information and then press **Predict**.')
-        # 7个变量
-        if check_sheet_exists(file_path='Cache/raw data.xlsx',
-                              sheet_name='raw'):
-            # 从缓存目录中读取数据
-            raw_data = pd.read_excel('Cache/raw data.xlsx',
-                                     sheet_name='raw')
-            raw_data = raw_data.drop(raw_data.columns[0], axis=1)
-            HCO3 = st.number_input('HCO3', min_value=raw_data['HCO3'].min(),
-                                   max_value=raw_data['HCO3'].max(), step=0.1)
-            GCS = st.number_input('GCS', min_value=raw_data['GCS'].min(),
-                                  max_value=raw_data['GCS'].max(), step=0.1)
-            WBC = st.number_input('WBC', min_value=raw_data['WBC'].min(),
-                                  max_value=raw_data['WBC'].max(), step=0.1)
-            INR = st.number_input('INR', min_value=raw_data['INR'].min(),
-                                  max_value=raw_data['INR'].max(), step=0.1)
-            HCT = st.number_input('HCT', min_value=raw_data['HCT'].min(),
-                                  max_value=raw_data['HCT'].max(), step=0.1)
-            TEM = st.number_input('Temperature',
-                                  min_value=raw_data['Temperature'].min(),
-                                  max_value=raw_data['Temperature'].max(),
-                                  step=0.1)
-            BUN = st.number_input('BUN', min_value=raw_data['BUN'].min(),
-                                  max_value=raw_data['BUN'].max(), step=0.1)
-        else:
-            st.error("No training data! Please upload the training data on the **1. Data Upload** page!", icon="🚨")    
-        # 设置提交按钮
-        submitted = st.form_submit_button('Predict')
+        # 准备提交表单
+        with st.form('my_form'):
+            st.subheader('Enter data')
+            st.caption('Please enter the relevant information and then press **Predict**.')
+            # 7个变量
+            if check_sheet_exists(file_path='Cache/raw data.xlsx',
+                                  sheet_name='raw'):
+                # 从缓存目录中读取数据
+                raw_data = pd.read_excel('Cache/raw data.xlsx',
+                                         sheet_name='raw')
+                raw_data = raw_data.drop(raw_data.columns[0], axis=1)
+            else:
+                st.error("No training data! Please upload the training data on the **1. Data Upload** page!", icon="🚨")    
+            # 判断列名是否符合要求
+            expected_columns = ['HCO3', 'GCS', 'WBC', 'INR', 'HCT', 'Temperature', 'BUN']
+            if set(raw_data.columns)!= set(expected_columns):
+                st.error("The data does not meet the requirements for use, please upload according to **NOTES**!", icon="🚨")
+                submitted = st.form_submit_button('Unusable')
+                if submitted:
+                    st.toast("**Don't click!**", icon='🎉')
+                    st.stop()
+            else:
+                HCO3 = st.number_input('HCO3',
+                                       min_value=raw_data['HCO3'].min(),
+                                       max_value=raw_data['HCO3'].max(),
+                                       step=0.1)
+                GCS = st.number_input('GCS',
+                                      min_value=raw_data['GCS'].min(),
+                                      max_value=raw_data['GCS'].max(),
+                                      step=0.1)
+                WBC = st.number_input('WBC',
+                                      min_value=raw_data['WBC'].min(),
+                                      max_value=raw_data['WBC'].max(),
+                                      step=0.1)
+                INR = st.number_input('INR',
+                                      min_value=raw_data['INR'].min(),
+                                      max_value=raw_data['INR'].max(),
+                                      step=0.1)
+                HCT = st.number_input('HCT',
+                                      min_value=raw_data['HCT'].min(),
+                                      max_value=raw_data['HCT'].max(),
+                                      step=0.1)
+                TEM = st.number_input('Temperature',
+                                      min_value=raw_data['Temperature'].min(),
+                                      max_value=raw_data['Temperature'].max(),
+                                      step=0.1)
+                BUN = st.number_input('BUN',
+                                      min_value=raw_data['BUN'].min(),
+                                      max_value=raw_data['BUN'].max(),
+                                      step=0.1)
+                # 设置提交按钮
+                submitted = st.form_submit_button('Predict')
+    else:
+        
+        st.error("No trained model! Please train the model on the **2. Model Training** page!", icon="🚨")
+        
+        
     with st.container(border=True):
         st.subheader('Prediction')
         if submitted:
